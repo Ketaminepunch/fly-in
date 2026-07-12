@@ -1,0 +1,1 @@
+# TODO: Medium map - circular loop, 6 drones. Target: <= 15 turns.

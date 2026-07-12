@@ -1,0 +1,16 @@
+"""Zone entity: name, coordinates, type
+(normal/blocked/restricted/priority), capacity."""
+
+
+class Zone:
+    """Zone entity: name, coordinates,
+    type (normal/blocked/restricted/priority), capacity."""
+
+    def __init__(
+        self, name: str, x: int, y: int, zone_type: str, capacity: int
+    ) -> None:
+        self.name = name
+        self.x = x
+        self.y = y
+        self.zone_type = zone_type
+        self.capacity = capacity

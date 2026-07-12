@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+CLAUDE.md
+# Virtual environments
+.venv/
+venv/
+
+# Type checking / linting / testing caches
+.mypy_cache/
+.pytest_cache/
+.flake8_cache/
+
+# Distribution / packaging
+build/
+dist/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+
+# Environment
+.env
