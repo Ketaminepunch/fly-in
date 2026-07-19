@@ -4,7 +4,7 @@ __pycache__/
 *$py.class
 *.egg-info/
 .eggs/
-CLAUDE.md
+PLAN.md
 # Virtual environments
 .venv/
 venv/
