@@ -2,7 +2,7 @@
 exposes adjacency without external graph libs."""
 
 from .connection import Connection
-from .model_exceptions import ZoneDoesntExist
+from .model_exceptions import DuplicateName, ZoneDoesntExist
 from .zone import Zone
 
 
@@ -15,6 +15,8 @@ class Network:
         self.nb_drones: int = 0
 
     def add_zone(self, zone: Zone) -> None:
+        if zone.name in self.zones:
+            raise DuplicateName()
         self.zones[zone.name] = zone
 
     def add_connection(

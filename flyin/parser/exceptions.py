@@ -2,5 +2,5 @@
 
 
 class ParsingError(Exception):
-    def __init__(self, message: str = "Error: ParsingError") -> None:
-        super().__init__(message)
+    def __init__(self, line_nbr: int, reason: str) -> None:
+        super().__init__(f"line {line_nbr}: {reason}")
