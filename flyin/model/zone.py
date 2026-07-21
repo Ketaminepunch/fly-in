@@ -7,7 +7,13 @@ class Zone:
     type (normal/blocked/restricted/priority), capacity."""
 
     def __init__(
-        self, name: str, x: int, y: int, zone_type: str, capacity: int
+        self,
+        name: str,
+        x: int,
+        y: int,
+        zone_type: str,
+        capacity: int,
+        color: str,
     ) -> None:
         self.name = name
         self.x = x

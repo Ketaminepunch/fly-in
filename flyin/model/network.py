@@ -12,6 +12,7 @@ class Network:
         self.adjacency: dict[str, list[Connection]] = {}
         self.start: Zone | None = None
         self.end: Zone | None = None
+        self.nb_drones: int = 0
 
     def add_zone(self, zone: Zone) -> None:
         self.zones[zone.name] = zone
