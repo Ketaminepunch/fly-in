@@ -20,3 +20,4 @@ class Zone:
         self.y = y
         self.zone_type = zone_type
         self.capacity = capacity
+        self.color: str = color

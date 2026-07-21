@@ -1,6 +1,12 @@
 """Parses a map file into a Network of zones, connections and drones."""
 
-from ..model import Network, Zone
+from ..model import (
+    DuplicateConnection,
+    DuplicateName,
+    Network,
+    Zone,
+    ZoneDoesntExist,
+)
 from .exceptions import ParsingError
 
 
@@ -13,7 +19,7 @@ def parse_map_file(path: str) -> Network:
                 continue
             split = stripped.split(":", 1)
             if len(split) != 2:
-                raise ParsingError(nbr, "missing ':' — invalid input")
+                raise ParsingError(nbr, "missing ':'  invalid input")
             if nbr == 1:
                 if split[0] != "nb_drones":
                     raise ParsingError(nbr, "first line must be nb_drones")
@@ -34,7 +40,10 @@ def parse_map_file(path: str) -> Network:
                 match split[0]:
                     case "start_hub" | "end_hub" | "hub":
                         zone = zone_parser(split[1], nbr)
-                        network.add_zone(zone)
+                        try:
+                            network.add_zone(zone)
+                        except DuplicateName as e:
+                            raise ParsingError(nbr, str(e))
                         if split[0] == "start_hub":
                             network.start = zone
                         elif split[0] == "end_hub":
@@ -43,9 +52,12 @@ def parse_map_file(path: str) -> Network:
                         zone1_name, zone2_name, capacity = connection_parser(
                             split[1], nbr
                         )
-                        network.add_connection(
-                            zone1_name, zone2_name, capacity
-                        )
+                        try:
+                            network.add_connection(
+                                zone1_name, zone2_name, capacity
+                            )
+                        except (DuplicateConnection, ZoneDoesntExist) as e:
+                            raise ParsingError(nbr, str(e)) from None
                     case _:
                         raise ParsingError(
                             nbr, "invalid hub or connection keyword"

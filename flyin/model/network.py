@@ -2,7 +2,11 @@
 exposes adjacency without external graph libs."""
 
 from .connection import Connection
-from .model_exceptions import DuplicateName, ZoneDoesntExist
+from .model_exceptions import (
+    DuplicateConnection,
+    DuplicateName,
+    ZoneDoesntExist,
+)
 from .zone import Zone
 
 
@@ -24,6 +28,13 @@ class Network:
     ) -> None:
         if max_link_capacity < 1:
             raise ValueError("Max link must be atleast 1")
+        connection_list = self.adjacency.get(zone1_name, [])
+        for connection in connection_list:
+            if (
+                connection.zone1_name == zone2_name
+                or connection.zone2_name == zone2_name
+            ):
+                raise DuplicateConnection()
         if zone1_name in self.zones and zone2_name in self.zones:
             connection = Connection(zone1_name, zone2_name, max_link_capacity)
             self.adjacency.setdefault(zone1_name, []).append(connection)
