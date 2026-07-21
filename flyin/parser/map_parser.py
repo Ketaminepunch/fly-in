@@ -12,6 +12,8 @@ from .exceptions import ParsingError
 
 def parse_map_file(path: str) -> Network:
     network = Network()
+    nbr = 0
+    first_line_seen = False
     with open(path, "r", encoding="utf-8") as f:
         for nbr, text in enumerate(f, start=1):
             stripped = text.strip()
@@ -19,8 +21,9 @@ def parse_map_file(path: str) -> Network:
                 continue
             split = stripped.split(":", 1)
             if len(split) != 2:
-                raise ParsingError(nbr, "missing ':'  invalid input")
-            if nbr == 1:
+                raise ParsingError(nbr, "missing ':' invalid input")
+            if not first_line_seen:
+                first_line_seen = True
                 if split[0] != "nb_drones":
                     raise ParsingError(nbr, "first line must be nb_drones")
                 else:
@@ -43,10 +46,18 @@ def parse_map_file(path: str) -> Network:
                         try:
                             network.add_zone(zone)
                         except DuplicateName as e:
-                            raise ParsingError(nbr, str(e))
+                            raise ParsingError(nbr, str(e)) from None
                         if split[0] == "start_hub":
+                            if network.start is not None:
+                                raise ParsingError(
+                                    nbr, "start assigned more than once"
+                                )
                             network.start = zone
                         elif split[0] == "end_hub":
+                            if network.end is not None:
+                                raise ParsingError(
+                                    nbr, "end assigned more than once"
+                                )
                             network.end = zone
                     case "connection":
                         zone1_name, zone2_name, capacity = connection_parser(
@@ -62,6 +73,8 @@ def parse_map_file(path: str) -> Network:
                         raise ParsingError(
                             nbr, "invalid hub or connection keyword"
                         )
+    if network.start is None or network.end is None:
+        raise ParsingError(nbr, "no start/end set")
     return network
 
 
