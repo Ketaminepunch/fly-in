@@ -49,6 +49,8 @@ class SimulationState:
     def zone_has_capacity(self, zone_name: str) -> bool:
         assert self.network.start is not None
         assert self.network.end is not None
+        if self.network.zones[zone_name].zone_type == "blocked":
+            return False
         if (
             zone_name == self.network.start.name
             or zone_name == self.network.end.name
