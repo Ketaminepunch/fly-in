@@ -9,15 +9,20 @@ from .exceptions import PathNotFoundError
 
 
 class DijkstraStrategy(PathfindingStrategy):
-    def find_path(self, network: Network) -> list[Connection]:
-        assert network.start is not None
+    def find_path(
+        self,
+        network: Network,
+        start_zone: str,
+        blocked_zones: set[str],
+        blocked_connections: set[str],
+    ) -> list[Connection]:
         assert network.end is not None
         heap: list[tuple[int, int, str]] = []
         visited: set[str] = set()
         distances: dict[str, tuple[int, int]] = {}
         previous: dict[str, tuple[str, Connection]] = {}
-        distances[network.start.name] = (0, 0)
-        heapq.heappush(heap, (0, 0, network.start.name))
+        distances[start_zone] = (0, 0)
+        heapq.heappush(heap, (0, 0, start_zone))
         while heap:
             current_distance, current_priority_score, current_zone = (
                 heapq.heappop(heap)
@@ -28,13 +33,15 @@ class DijkstraStrategy(PathfindingStrategy):
                 visited.add(current_zone)
             if current_zone == network.end.name:
                 path = []
-                while current_zone != network.start.name:
+                while current_zone != start_zone:
                     prev_zone, connection = previous[current_zone]
                     path.append(connection)
                     current_zone = prev_zone
                 path.reverse()
                 return path
             for connection in network.adjacency[current_zone]:
+                if connection.name in blocked_connections:
+                    continue
                 neighbor_name = (
                     connection.zone2_name
                     if current_zone == connection.zone1_name
@@ -45,6 +52,8 @@ class DijkstraStrategy(PathfindingStrategy):
                 if neighbor_name in visited:
                     continue
                 else:
+                    if neighbor_name in blocked_zones:
+                        continue
                     if (
                         neighbor_type == "normal"
                         or neighbor_type == "priority"
