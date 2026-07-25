@@ -23,12 +23,15 @@ class PygameRender:
     ) -> None:
         self.network: Network = network
         pg.init()
-        self.screen: pg.Surface = pg.display.set_mode((width, height))
+        self.screen: pg.Surface = pg.display.set_mode(
+            (width, height), pg.RESIZABLE
+        )
         self.clock: pg.time.Clock = pg.time.Clock()
         self.font: pg.font.Font = pg.font.SysFont(None, 24)
         self.positions: dict[str, tuple[int, int]] = self.compute_positions(
             network, width, height, margin
         )
+        self.margin = margin
         self.connections: dict[str, Connection] = {
             connection.name: connection
             for connections in network.adjacency.values()
@@ -95,19 +98,36 @@ class PygameRender:
             )
             self.screen.blit(text_surface, text_rect)
 
-    def draw_drones(self, current_positions: dict[int, str]) -> None:
-        by_token: dict[str, list[int]] = {}
-        for drone_id, token in current_positions.items():
-            by_token.setdefault(token, []).append(drone_id)
-        for token, drone_ids in by_token.items():
-            if token in self.positions:
-                drone_pos = self.positions[token]
-            else:
-                connection = self.connections[token]
-                x1, y1 = self.positions[connection.zone1_name]
-                x2, y2 = self.positions[connection.zone2_name]
-                drone_pos = ((x1 + x2) // 2, (y1 + y2) // 2)
-            base_pos = drone_pos
+    def token_to_pos(self, token: str) -> tuple[int, int]:
+        if token in self.positions:
+            drone_pos = self.positions[token]
+        else:
+            connection = self.connections[token]
+            x1, y1 = self.positions[connection.zone1_name]
+            x2, y2 = self.positions[connection.zone2_name]
+            drone_pos = ((x1 + x2) // 2, (y1 + y2) // 2)
+        return drone_pos
+
+    def draw_drones(
+        self,
+        from_positions: dict[int, str],
+        to_positions: dict[int, str],
+        progress: float,
+    ) -> None:
+        by_pair: dict[tuple[str, str], list[int]] = {}
+        for drone_id, from_token in from_positions.items():
+            to_token = to_positions[drone_id]
+            by_pair.setdefault((from_token, to_token), []).append(drone_id)
+
+        for tokens, drone_ids in by_pair.items():
+            from_token, to_token = tokens
+            pos_from = self.token_to_pos(from_token)
+            pos_to = self.token_to_pos(to_token)
+            from_x, from_y = pos_from
+            to_x, to_y = pos_to
+            base_x = int(from_x + (to_x - from_x) * min(progress, 1.0))
+            base_y = int(from_y + (to_y - from_y) * min(progress, 1.0))
+            base_pos = (base_x, base_y)
             for i, drone_id in enumerate(drone_ids):
                 color = pg.Color(DRONE_COLORS[drone_id % len(DRONE_COLORS)])
                 offset_x = (i - (len(drone_ids) - 1) / 2) * 16
@@ -122,21 +142,69 @@ class PygameRender:
                 self.screen.blit(text_surface, text_rect)
 
     def render(self, turn_log: list[dict[int, str]]) -> None:
-        snapshots:list[dict[int,str]]=[]
+        snapshots: list[dict[int, str]] = []
         current_positions: dict[int, str] = {
             drone_id: self.network.start.name
             for drone_id in range(1, self.network.nb_drones + 1)
         }
+        snapshots.append(current_positions)
         for turn in turn_log:
-            current_positions=current_positions.copy()
+            current_positions = current_positions.copy()
             current_positions.update(turn)
             snapshots.append(current_positions)
+        turn_index = 0
+        anim_target: int | None = None
+        anim_progress: float = 0.0
+        paused = False
+        paused = True
+        running = True
+        anim_speed = 200
+        while running:
+            dt = self.clock.tick(60)
             for event in pg.event.get():
                 if event.type == pg.QUIT:
-                    pg.quit()
-                    return
+                    running = False
+                elif event.type == pg.KEYDOWN:
+                    match event.key:
+                        case pg.K_SPACE:
+                            paused = not paused
+                        case pg.K_RIGHT:
+                            if anim_target is None:
+                                anim_target = min(
+                                    turn_index + 1, len(snapshots) - 1
+                                )
+                        case pg.K_LEFT:
+                            if anim_target is None:
+                                anim_target = max(turn_index - 1, 0)
+                        case pg.K_UP:
+                            if anim_speed > 200:
+                                anim_speed -= 200
+                        case pg.K_DOWN:
+                            if anim_speed < 1000:
+                                anim_speed += 200
+                elif event.type == pg.VIDEORESIZE:
+                    self.screen = pg.display.set_mode(
+                        (event.w, event.h), pg.RESIZABLE
+                    )
+                    self.positions = self.compute_positions(
+                        self.network, event.w, event.h, self.margin
+                    )
+            if anim_target is not None:
+                anim_progress += dt / anim_speed
+            elif anim_target is None and not paused:
+                anim_target = min(turn_index + 1, len(snapshots) - 1)
+            if anim_progress >= 1.0:
+                if anim_target is not None:
+                    turn_index = anim_target
+                anim_target = None
+                anim_progress = 0.0
             self.draw_network()
-            self.draw_drones(current_positions)
+            self.draw_drones(
+                snapshots[turn_index],
+                snapshots[anim_target]
+                if anim_target is not None
+                else snapshots[turn_index],
+                anim_progress,
+            )
             pg.display.flip()
-            self.clock.tick(2)
         pg.quit()
