@@ -13,4 +13,6 @@ class PathfindingStrategy(ABC):
         start_zone: str,
         blocked_zones: set[str],
         blocked_connections: set[str],
+        connection_reservations: dict[str, int],
+        zone_reservations: dict[str, int],
     ) -> list[Connection]: ...

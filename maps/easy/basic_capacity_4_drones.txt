@@ -1,1 +1,0 @@
-# TODO: Easy map - basic capacity, 4 drones. Target: <= 6 turns.

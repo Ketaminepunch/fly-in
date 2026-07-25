@@ -15,6 +15,8 @@ class DijkstraStrategy(PathfindingStrategy):
         start_zone: str,
         blocked_zones: set[str],
         blocked_connections: set[str],
+        connection_reservations: dict[str, int],
+        zone_reservations: dict[str, int],
     ) -> list[Connection]:
         assert network.end is not None
         heap: list[tuple[int, int, str]] = []
@@ -63,7 +65,20 @@ class DijkstraStrategy(PathfindingStrategy):
                         cost = 2
                     else:
                         continue
-                    new_distance = current_distance + cost
+                    connection_cost = (
+                        connection_reservations.get(connection.name, 0)
+                        // connection.max_link_capacity
+                    )
+                    if neighbor_name != network.end.name:
+                        zone_cost = (
+                            zone_reservations.get(neighbor_name, 0)
+                            // network.zones[neighbor_name].capacity
+                        )
+                    else:
+                        zone_cost = 0
+                    new_distance = (
+                        current_distance + cost + connection_cost + zone_cost
+                    )
                     new_priority_score = (
                         current_priority_score + priority_delta
                     )

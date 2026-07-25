@@ -1,1 +1,0 @@
-# TODO: Easy map - simple fork, 4 drones. Target: <= 8 turns.

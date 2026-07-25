@@ -93,8 +93,13 @@ class SimulationState:
 
     def advance_turn(self) -> None:
         self.turn += 1
+
+    def land_arrivals(self) -> list[int]:
+        landing_drones: list[int] = []
         for drone_id, location in self.drone_locations.items():
             if location.turns_remaining is not None:
                 self.drone_locations[drone_id] = Location(
                     zone=location.destination
                 )
+                landing_drones.append(drone_id)
+        return landing_drones

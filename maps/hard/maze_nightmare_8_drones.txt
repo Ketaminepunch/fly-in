@@ -1,1 +1,0 @@
-# TODO: Hard map - maze nightmare, 8 drones. Target: <= 30 turns.

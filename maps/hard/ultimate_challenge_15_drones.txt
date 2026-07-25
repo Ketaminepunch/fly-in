@@ -1,1 +1,0 @@
-# TODO: Hard map - ultimate challenge, 15 drones. Target: <= 45 turns.

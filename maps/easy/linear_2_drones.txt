@@ -1,1 +1,0 @@
-# TODO: Easy map - linear path, 2 drones. Target: <= 6 turns.

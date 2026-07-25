@@ -1,1 +1,0 @@
-# TODO: Hard map - capacity hell, 12 drones. Target: <= 35 turns.

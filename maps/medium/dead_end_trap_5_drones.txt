@@ -1,1 +1,0 @@
-# TODO: Medium map - dead end trap, 5 drones. Target: <= 12 turns.
