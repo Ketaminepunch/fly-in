@@ -14,6 +14,8 @@ def parse_map_file(path: str) -> Network:
     network = Network()
     nbr = 0
     first_line_seen = False
+    start: Zone | None = None
+    end: Zone | None = None
     with open(path, "r", encoding="utf-8") as f:
         for nbr, text in enumerate(f, start=1):
             stripped = text.strip()
@@ -48,17 +50,17 @@ def parse_map_file(path: str) -> Network:
                         except DuplicateName as e:
                             raise ParsingError(nbr, str(e)) from None
                         if split[0] == "start_hub":
-                            if network.start is not None:
+                            if start is not None:
                                 raise ParsingError(
                                     nbr, "start assigned more than once"
                                 )
-                            network.start = zone
+                            start = zone
                         elif split[0] == "end_hub":
-                            if network.end is not None:
+                            if end is not None:
                                 raise ParsingError(
                                     nbr, "end assigned more than once"
                                 )
-                            network.end = zone
+                            end = zone
                     case "connection":
                         zone1_name, zone2_name, capacity = connection_parser(
                             split[1], nbr
@@ -73,8 +75,10 @@ def parse_map_file(path: str) -> Network:
                         raise ParsingError(
                             nbr, "invalid hub or connection keyword"
                         )
-    if network.start is None or network.end is None:
+    if start is None or end is None:
         raise ParsingError(nbr, "no start/end set")
+    network.start = start
+    network.end = end
     return network
 
 

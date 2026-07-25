@@ -6,6 +6,7 @@ from flyin.io.output_writer import format_turns
 from flyin.parser.map_parser import parse_map_file
 from flyin.pathfinding.strategies import DijkstraStrategy
 from flyin.simulation.engine import orchestration
+from flyin.visualization.graphical_renderer import PygameRender
 
 
 def argument_parsing() -> argparse.Namespace:
@@ -29,3 +30,5 @@ def main() -> None:
     formatted_turns = format_turns(turn_log)
     for line in formatted_turns:
         print(line)
+    renderer = PygameRender(network)
+    renderer.render(turn_log)

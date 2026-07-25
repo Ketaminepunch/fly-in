@@ -18,7 +18,6 @@ class DijkstraStrategy(PathfindingStrategy):
         connection_reservations: dict[str, int],
         zone_reservations: dict[str, int],
     ) -> list[Connection]:
-        assert network.end is not None
         heap: list[tuple[int, int, str]] = []
         visited: set[str] = set()
         distances: dict[str, tuple[int, int]] = {}

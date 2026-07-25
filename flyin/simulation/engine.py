@@ -10,8 +10,6 @@ from flyin.simulation.state import SimulationState
 def orchestration(
     network: Network, strategy: PathfindingStrategy
 ) -> list[dict[int, str]]:
-    assert network.start is not None
-    assert network.end is not None
     drone_paths: dict[int, list[Connection]] = {}
     drone_progress: dict[int, int] = {}
     drone_list: list[Drone] = []

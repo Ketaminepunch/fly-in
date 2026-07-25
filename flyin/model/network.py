@@ -11,11 +11,12 @@ from .zone import Zone
 
 
 class Network:
+    start: Zone
+    end: Zone
+
     def __init__(self) -> None:
         self.zones: dict[str, Zone] = {}
         self.adjacency: dict[str, list[Connection]] = {}
-        self.start: Zone | None = None
-        self.end: Zone | None = None
         self.nb_drones: int = 0
 
     def add_zone(self, zone: Zone) -> None:

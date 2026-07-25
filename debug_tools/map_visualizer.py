@@ -27,9 +27,9 @@ def to_zones(network: Network) -> list[ZoneData]:
     zones: list[ZoneData] = []
     for zone in network.zones.values():
         zone_type = zone.zone_type
-        if network.start is not None and zone.name == network.start.name:
+        if zone.name == network.start.name:
             zone_type = "start"
-        elif network.end is not None and zone.name == network.end.name:
+        elif zone.name == network.end.name:
             zone_type = "end"
         zones.append(
             {

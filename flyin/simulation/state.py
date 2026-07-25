@@ -23,7 +23,6 @@ class Location:
 
 class SimulationState:
     def __init__(self, network: Network, drones: list[Drone]):
-        assert network.start is not None
         self.network = network
         self.turn: int = 0
         self.drone_locations: dict[int, Location] = {
@@ -47,8 +46,6 @@ class SimulationState:
         return matches
 
     def zone_has_capacity(self, zone_name: str) -> bool:
-        assert self.network.start is not None
-        assert self.network.end is not None
         if self.network.zones[zone_name].zone_type == "blocked":
             return False
         if (
