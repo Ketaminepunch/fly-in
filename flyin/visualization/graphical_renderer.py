@@ -1,6 +1,7 @@
 """pg-based graphical view of the zone network and live drone positions."""
 
 import pygame as pg
+from pygame.math import clamp
 
 from flyin.model import Connection, Network
 
@@ -23,47 +24,43 @@ class PygameRender:
     ) -> None:
         self.network: Network = network
         pg.init()
+        self.margin = margin
         self.screen: pg.Surface = pg.display.set_mode(
             (width, height), pg.RESIZABLE
         )
         self.clock: pg.time.Clock = pg.time.Clock()
         self.font: pg.font.Font = pg.font.SysFont(None, 24)
-        self.positions: dict[str, tuple[int, int]] = self.compute_positions(
-            network, width, height, margin
-        )
-        self.margin = margin
+        self.positions: dict[str, tuple[float, float]] = {
+            zone.name: (zone.x, zone.y) for zone in self.network.zones.values()
+        }
         self.connections: dict[str, Connection] = {
             connection.name: connection
             for connections in network.adjacency.values()
             for connection in connections
         }
+        self.scale: float = 1.0
+        self.tx: float = 0.0
+        self.ty: float = 0.0
+        self._fit_view(width, height)
 
-    def compute_positions(
-        self, network: Network, width: int, height: int, margin: int
-    ) -> dict[str, tuple[int, int]]:
-        xs = [zone.x for zone in network.zones.values()]
-        ys = [zone.y for zone in network.zones.values()]
+    def _fit_view(self, width: int, height: int) -> None:
+        xs = [zone.x for zone in self.network.zones.values()]
+        ys = [zone.y for zone in self.network.zones.values()]
         x_min, x_max = min(xs), max(xs)
         y_min, y_max = min(ys), max(ys)
-        x_span, y_span = x_max - x_min, y_max - y_min
-        calced_positions: dict[str, tuple[int, int]] = {}
-        for zone in network.zones.values():
-            x, y = zone.x, zone.y
-            if x_span == 0:
-                x_pos = width // 2
-            else:
-                x_pos = int(
-                    margin + (x - x_min) / x_span * ((width - margin) - margin)
-                )
-            if y_span == 0:
-                y_pos = height // 2
-            else:
-                y_pos = int(
-                    margin
-                    + (y - y_min) / y_span * ((height - margin) - margin)
-                )
-            calced_positions[zone.name] = (x_pos, y_pos)
-        return calced_positions
+        x_span, y_span = x_max - x_min or 1.0, y_max - y_min or 1.0
+        self.scale = min(
+            (width - 2 * self.margin) / x_span,
+            (height - 2 * self.margin) / y_span,
+        )
+        self.tx = (width - x_span * self.scale) / 2 - x_min * self.scale
+        self.ty = (height - y_span * self.scale) / 2 - y_min * self.scale
+
+    def _world_to_screen(self, wx: float, wy: float) -> tuple[float, float]:
+        return (wx * self.scale + self.tx, wy * self.scale + self.ty)
+
+    def _screen_to_world(self, sx: float, sy: float) -> tuple[float, float]:
+        return ((sx - self.tx) / self.scale, (sy - self.ty) / self.scale)
 
     def draw_network(self) -> None:
         self.screen.fill((57, 53, 61))
@@ -72,11 +69,15 @@ class PygameRender:
             for connection in connections:
                 all_connections.add(connection)
         for connection in all_connections:
-            pos1 = self.positions[connection.zone1_name]
-            pos2 = self.positions[connection.zone2_name]
+            pos1 = self._world_to_screen(
+                *self.positions[connection.zone1_name]
+            )
+            pos2 = self._world_to_screen(
+                *self.positions[connection.zone2_name]
+            )
             pg.draw.line(self.screen, pg.Color("gray"), pos1, pos2)
         for zone in self.network.zones.values():
-            zone_position = self.positions[zone.name]
+            zone_position = self._world_to_screen(*self.positions[zone.name])
             if zone.color == "none":
                 body_color = pg.Color("gray")
             else:
@@ -96,23 +97,24 @@ class PygameRender:
             text_rect = text_surface.get_rect(
                 center=(zone_position[0], zone_position[1] + 14 + 12)
             )
-            text_surface = self.font.render(
+            capacity_surface = self.font.render(
                 str(zone.capacity), True, pg.Color("black")
             )
-            text_rect = text_surface.get_rect(
+            capacity_rect = capacity_surface.get_rect(
                 center=(zone_position[0], zone_position[1])
             )
             self.screen.blit(text_surface, text_rect)
+            self.screen.blit(capacity_surface, capacity_rect)
 
-    def token_to_pos(self, token: str) -> tuple[int, int]:
+    def token_to_pos(self, token: str) -> tuple[float, float]:
         if token in self.positions:
-            drone_pos = self.positions[token]
+            wx, wy = self.positions[token]
         else:
             connection = self.connections[token]
             x1, y1 = self.positions[connection.zone1_name]
             x2, y2 = self.positions[connection.zone2_name]
-            drone_pos = ((x1 + x2) // 2, (y1 + y2) // 2)
-        return drone_pos
+            wx, wy = (x1 + x2) / 2, (y1 + y2) / 2
+        return self._world_to_screen(wx, wy)
 
     def draw_drones(
         self,
@@ -188,13 +190,18 @@ class PygameRender:
                         case pg.K_DOWN:
                             if anim_speed < 1000:
                                 anim_speed += 200
+                elif event.type == pg.MOUSEWHEEL:
+                    mx, my = pg.mouse.get_pos()
+                    wx, wy = self._screen_to_world(mx, my)
+                    zoom_factor = 1.1 if event.y > 0 else 1 / 1.1
+                    self.scale = clamp(self.scale * zoom_factor, 20, 1000)
+                    self.tx = mx - wx * self.scale
+                    self.ty = my - wy * self.scale
                 elif event.type == pg.VIDEORESIZE:
                     self.screen = pg.display.set_mode(
                         (event.w, event.h), pg.RESIZABLE
                     )
-                    self.positions = self.compute_positions(
-                        self.network, event.w, event.h, self.margin
-                    )
+                    self._fit_view(event.w, event.h)
             if anim_target is not None:
                 anim_progress += dt / anim_speed
             elif anim_target is None and not paused:
