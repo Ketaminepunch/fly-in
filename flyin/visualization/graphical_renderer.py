@@ -41,6 +41,8 @@ class PygameRender:
         self.scale: float = 1.0
         self.tx: float = 0.0
         self.ty: float = 0.0
+        self.drag_start: tuple[int, int] | None = None
+        self.drag_origin: tuple[float, float] | None = None
         self._fit_view(width, height)
 
     def _fit_view(self, width: int, height: int) -> None:
@@ -202,6 +204,25 @@ class PygameRender:
                         (event.w, event.h), pg.RESIZABLE
                     )
                     self._fit_view(event.w, event.h)
+                elif event.type == pg.MOUSEBUTTONDOWN:
+                    if event.button == 1:
+                        self.drag_start = event.pos
+                        self.drag_origin = (self.tx, self.ty)
+                elif event.type == pg.MOUSEBUTTONUP:
+                    if event.button == 1:
+                        self.drag_start = None
+                elif event.type == pg.MOUSEMOTION:
+                    if (
+                        self.drag_start is not None
+                        and self.drag_origin is not None
+                    ):
+                        mx, my = pg.mouse.get_pos()
+                        dx, dy = (
+                            mx - self.drag_start[0],
+                            my - self.drag_start[1],
+                        )
+                        self.tx = self.drag_origin[0] + dx
+                        self.ty = self.drag_origin[1] + dy
             if anim_target is not None:
                 anim_progress += dt / anim_speed
             elif anim_target is None and not paused:
