@@ -7,7 +7,7 @@ from flyin.model import Connection, Network
 type_colors: dict[str, str] = {
     "restricted": "orange",
     "priority": "green",
-    "normal": "blue",
+    "normal": "cyan",
     "blocked": "red",
 }
 DRONE_COLORS = ["yellow", "cyan", "magenta", "lime", "orange", "deeppink"]
@@ -90,11 +90,17 @@ class PygameRender:
                 pg.Color(type_colors[zone.zone_type]),
                 zone_position,
                 14,
-                3,
+                2,
             )
             text_surface = self.font.render(zone.name, True, pg.Color("white"))
             text_rect = text_surface.get_rect(
                 center=(zone_position[0], zone_position[1] + 14 + 12)
+            )
+            text_surface = self.font.render(
+                str(zone.capacity), True, pg.Color("black")
+            )
+            text_rect = text_surface.get_rect(
+                center=(zone_position[0], zone_position[1])
             )
             self.screen.blit(text_surface, text_rect)
 
