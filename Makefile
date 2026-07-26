@@ -2,9 +2,9 @@
 
 install:
 	uv sync
-
+MAP?= maps/easy/02_simple_fork.txt
 run:
-	uv run python main.py
+	uv run python main.py $(MAP) 
 
 debug:
 	uv run python -m pdb main.py

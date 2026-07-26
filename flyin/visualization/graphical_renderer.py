@@ -1,17 +1,42 @@
 """pg-based graphical view of the zone network and live drone positions."""
 
 import pygame as pg
+import pygame.gfxdraw
 from pygame.math import clamp
 
 from flyin.model import Connection, Network
 
-type_colors: dict[str, str] = {
-    "restricted": "orange",
-    "priority": "green",
-    "normal": "cyan",
-    "blocked": "red",
+MACCHIATO: dict[str, str] = {
+    "base": "#24273a",
+    "surface1": "#494d64",
+    "overlay0": "#6e738d",
+    "text": "#cad3f5",
+    "crust": "#181926",
+    "red": "#ed8796",
+    "peach": "#f5a97f",
+    "yellow": "#eed49f",
+    "green": "#a6da95",
+    "teal": "#8bd5ca",
+    "sky": "#91d7e3",
+    "sapphire": "#7dc4e4",
+    "mauve": "#c6a0f6",
+    "pink": "#f5bde6",
+    "flamingo": "#f0c6c6",
 }
-DRONE_COLORS = ["yellow", "cyan", "magenta", "lime", "orange", "deeppink"]
+type_colors: dict[str, str] = {
+    "restricted": MACCHIATO["peach"],
+    "priority": MACCHIATO["green"],
+    "normal": MACCHIATO["sky"],
+    "blocked": MACCHIATO["red"],
+}
+DRONE_COLORS = [
+    MACCHIATO["yellow"],
+    MACCHIATO["sapphire"],
+    MACCHIATO["pink"],
+    MACCHIATO["teal"],
+    MACCHIATO["mauve"],
+    MACCHIATO["flamingo"],
+]
 
 
 class PygameRender:
@@ -65,7 +90,7 @@ class PygameRender:
         return ((sx - self.tx) / self.scale, (sy - self.ty) / self.scale)
 
     def draw_network(self) -> None:
-        self.screen.fill((57, 53, 61))
+        self.screen.fill(pg.Color(MACCHIATO["base"]))
         all_connections = set()
         for connections in self.network.adjacency.values():
             for connection in connections:
@@ -77,30 +102,32 @@ class PygameRender:
             pos2 = self._world_to_screen(
                 *self.positions[connection.zone2_name]
             )
-            pg.draw.line(self.screen, pg.Color("gray"), pos1, pos2)
+            pg.draw.aaline(
+                self.screen, pg.Color(MACCHIATO["overlay0"]), pos1, pos2
+            )
         for zone in self.network.zones.values():
             zone_position = self._world_to_screen(*self.positions[zone.name])
             if zone.color == "none":
-                body_color = pg.Color("gray")
+                body_color = pg.Color(MACCHIATO["surface1"])
             else:
                 try:
                     body_color = pg.Color(zone.color)
                 except ValueError:
-                    body_color = pg.Color("gray")
-            pg.draw.circle(self.screen, body_color, zone_position, 14)
-            pg.draw.circle(
-                self.screen,
-                pg.Color(type_colors[zone.zone_type]),
-                zone_position,
-                14,
-                2,
+                    body_color = pg.Color(MACCHIATO["surface1"])
+            cx, cy = int(zone_position[0]), int(zone_position[1])
+            type_color = pg.Color(type_colors[zone.zone_type])
+            pg.gfxdraw.filled_circle(self.screen, cx, cy, 30, type_color)
+            pg.gfxdraw.aacircle(self.screen, cx, cy, 30, type_color)
+            pg.gfxdraw.filled_circle(self.screen, cx, cy, 28, body_color)
+            pg.gfxdraw.aacircle(self.screen, cx, cy, 28, body_color)
+            text_surface = self.font.render(
+                zone.name, True, pg.Color(MACCHIATO["text"])
             )
-            text_surface = self.font.render(zone.name, True, pg.Color("white"))
             text_rect = text_surface.get_rect(
-                center=(zone_position[0], zone_position[1] + 14 + 12)
+                center=(zone_position[0], zone_position[1] + 25 + 12)
             )
             capacity_surface = self.font.render(
-                str(zone.capacity), True, pg.Color("black")
+                str(zone.capacity), True, pg.Color(MACCHIATO["crust"])
             )
             capacity_rect = capacity_surface.get_rect(
                 center=(zone_position[0], zone_position[1])
@@ -146,7 +173,7 @@ class PygameRender:
                 rect.center = final_pos
                 pg.draw.rect(self.screen, color, rect)
                 text_surface = self.font.render(
-                    str(drone_id), True, pg.Color("black")
+                    str(drone_id), True, pg.Color(MACCHIATO["crust"])
                 )
                 text_rect = text_surface.get_rect(center=rect.center)
                 self.screen.blit(text_surface, text_rect)
@@ -192,6 +219,24 @@ class PygameRender:
                         case pg.K_DOWN:
                             if anim_speed < 1000:
                                 anim_speed += 200
+                        case pg.K_EQUALS:
+                            mx, my = pg.mouse.get_pos()
+                            wx, wy = self._screen_to_world(mx, my)
+                            zoom_factor = 1.1
+                            self.scale = clamp(
+                                self.scale * zoom_factor, 20, 1000
+                            )
+                            self.tx = mx - wx * self.scale
+                            self.ty = my - wy * self.scale
+                        case pg.K_MINUS:
+                            mx, my = pg.mouse.get_pos()
+                            wx, wy = self._screen_to_world(mx, my)
+                            zoom_factor = 1 / 1.1
+                            self.scale = clamp(
+                                self.scale * zoom_factor, 20, 1000
+                            )
+                            self.tx = mx - wx * self.scale
+                            self.ty = my - wy * self.scale
                 elif event.type == pg.MOUSEWHEEL:
                     mx, my = pg.mouse.get_pos()
                     wx, wy = self._screen_to_world(mx, my)
@@ -240,5 +285,12 @@ class PygameRender:
                 else snapshots[turn_index],
                 anim_progress,
             )
+            turn_text = self.font.render(
+                f"Turn {turn_index}/{len(snapshots) - 1}",
+                True,
+                pg.Color(MACCHIATO["text"]),
+            )
+            self.screen.blit(turn_text, (10, 10))
+
             pg.display.flip()
         pg.quit()
