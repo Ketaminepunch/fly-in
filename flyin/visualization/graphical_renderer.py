@@ -69,6 +69,7 @@ class PygameRender:
         self.drag_start: tuple[int, int] | None = None
         self.drag_origin: tuple[float, float] | None = None
         self._fit_view(width, height)
+        self.base_scale = self.scale
 
     def _fit_view(self, width: int, height: int) -> None:
         xs = [zone.x for zone in self.network.zones.values()]
@@ -80,6 +81,7 @@ class PygameRender:
             (width - 2 * self.margin) / x_span,
             (height - 2 * self.margin) / y_span,
         )
+        self.base_scale = self.scale
         self.tx = (width - x_span * self.scale) / 2 - x_min * self.scale
         self.ty = (height - y_span * self.scale) / 2 - y_min * self.scale
 
@@ -92,6 +94,7 @@ class PygameRender:
     def draw_network(self) -> None:
         self.screen.fill(pg.Color(MACCHIATO["base"]))
         all_connections = set()
+        ratio = self.scale / self.base_scale
         for connections in self.network.adjacency.values():
             for connection in connections:
                 all_connections.add(connection)
@@ -116,10 +119,18 @@ class PygameRender:
                     body_color = pg.Color(MACCHIATO["surface1"])
             cx, cy = int(zone_position[0]), int(zone_position[1])
             type_color = pg.Color(type_colors[zone.zone_type])
-            pg.gfxdraw.filled_circle(self.screen, cx, cy, 30, type_color)
-            pg.gfxdraw.aacircle(self.screen, cx, cy, 30, type_color)
-            pg.gfxdraw.filled_circle(self.screen, cx, cy, 28, body_color)
-            pg.gfxdraw.aacircle(self.screen, cx, cy, 28, body_color)
+            pygame.gfxdraw.filled_circle(
+                self.screen, cx, cy, int(22 * ratio), type_color
+            )
+            pygame.gfxdraw.aacircle(
+                self.screen, cx, cy, int(22 * ratio), type_color
+            )
+            pygame.gfxdraw.filled_circle(
+                self.screen, cx, cy, int(20 * ratio), body_color
+            )
+            pygame.gfxdraw.aacircle(
+                self.screen, cx, cy, int(20 * ratio), body_color
+            )
             text_surface = self.font.render(
                 zone.name, True, pg.Color(MACCHIATO["text"])
             )
