@@ -81,7 +81,6 @@ class PygameRender:
             (width - 2 * self.margin) / x_span,
             (height - 2 * self.margin) / y_span,
         )
-        self.base_scale = self.scale
         self.tx = (width - x_span * self.scale) / 2 - x_min * self.scale
         self.ty = (height - y_span * self.scale) / 2 - y_min * self.scale
 
@@ -120,16 +119,16 @@ class PygameRender:
             cx, cy = int(zone_position[0]), int(zone_position[1])
             type_color = pg.Color(type_colors[zone.zone_type])
             pygame.gfxdraw.filled_circle(
-                self.screen, cx, cy, int(22 * ratio), type_color
+                self.screen, cx, cy, int(30 * ratio), type_color
             )
             pygame.gfxdraw.aacircle(
-                self.screen, cx, cy, int(22 * ratio), type_color
+                self.screen, cx, cy, int(30 * ratio), type_color
             )
             pygame.gfxdraw.filled_circle(
-                self.screen, cx, cy, int(20 * ratio), body_color
+                self.screen, cx, cy, int(28 * ratio), body_color
             )
             pygame.gfxdraw.aacircle(
-                self.screen, cx, cy, int(20 * ratio), body_color
+                self.screen, cx, cy, int(28 * ratio), body_color
             )
             text_surface = self.font.render(
                 zone.name, True, pg.Color(MACCHIATO["text"])
