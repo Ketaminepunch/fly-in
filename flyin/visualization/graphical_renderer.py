@@ -45,7 +45,7 @@ class PygameRender:
         network: Network,
         width: int = 800,
         height: int = 600,
-        margin: int = 40,
+        margin: int = 65,
     ) -> None:
         self.network: Network = network
         pg.init()
@@ -54,7 +54,8 @@ class PygameRender:
             (width, height), pg.RESIZABLE
         )
         self.clock: pg.time.Clock = pg.time.Clock()
-        self.font: pg.font.Font = pg.font.SysFont(None, 24)
+        self.font: pg.font.Font = pg.font.SysFont(None, 20)
+        self.last_directions: dict[int, pg.math.Vector2] = {}
         self.positions: dict[str, tuple[float, float]] = {
             zone.name: (zone.x, zone.y) for zone in self.network.zones.values()
         }
@@ -70,6 +71,14 @@ class PygameRender:
         self.drag_origin: tuple[float, float] | None = None
         self._fit_view(width, height)
         self.base_scale = self.scale
+        self.fonts: dict[int, pg.font.Font] = {}
+        self.turn_index: int = 0
+        self.anim_speed: int = 0
+
+    def _font_finder(self, size: int) -> pg.font.Font:
+        if size not in self.fonts:
+            self.fonts[size] = pg.font.SysFont(None, size)
+        return self.fonts[size]
 
     def _fit_view(self, width: int, height: int) -> None:
         xs = [zone.x for zone in self.network.zones.values()]
@@ -119,30 +128,28 @@ class PygameRender:
             cx, cy = int(zone_position[0]), int(zone_position[1])
             type_color = pg.Color(type_colors[zone.zone_type])
             pygame.gfxdraw.filled_circle(
-                self.screen, cx, cy, int(30 * ratio), type_color
+                self.screen, cx, cy, int(26), type_color
             )
-            pygame.gfxdraw.aacircle(
-                self.screen, cx, cy, int(30 * ratio), type_color
-            )
+            pygame.gfxdraw.aacircle(self.screen, cx, cy, int(26), type_color)
             pygame.gfxdraw.filled_circle(
-                self.screen, cx, cy, int(28 * ratio), body_color
+                self.screen, cx, cy, int(24), body_color
             )
-            pygame.gfxdraw.aacircle(
-                self.screen, cx, cy, int(28 * ratio), body_color
-            )
-            text_surface = self.font.render(
-                zone.name, True, pg.Color(MACCHIATO["text"])
-            )
-            text_rect = text_surface.get_rect(
-                center=(zone_position[0], zone_position[1] + 25 + 12)
-            )
+            pygame.gfxdraw.aacircle(self.screen, cx, cy, int(24), body_color)
+            if self.scale > self.base_scale * 1.03:
+                size = int(clamp(14 * ratio, 8, 27))
+                text_surface = self._font_finder(size).render(
+                    zone.name, True, pg.Color(MACCHIATO["text"])
+                )
+                text_rect = text_surface.get_rect(
+                    center=(zone_position[0], zone_position[1] + (35))
+                )
+                self.screen.blit(text_surface, text_rect)
             capacity_surface = self.font.render(
                 str(zone.capacity), True, pg.Color(MACCHIATO["crust"])
             )
             capacity_rect = capacity_surface.get_rect(
                 center=(zone_position[0], zone_position[1])
             )
-            self.screen.blit(text_surface, text_rect)
             self.screen.blit(capacity_surface, capacity_rect)
 
     def token_to_pos(self, token: str) -> tuple[float, float]:
@@ -176,17 +183,61 @@ class PygameRender:
             base_y = int(from_y + (to_y - from_y) * min(progress, 1.0))
             base_pos = (base_x, base_y)
             for i, drone_id in enumerate(drone_ids):
+                angle = i * (360 / len(drone_ids))
                 color = pg.Color(DRONE_COLORS[drone_id % len(DRONE_COLORS)])
-                offset_x = (i - (len(drone_ids) - 1) / 2) * 16
-                final_pos = int(base_pos[0] + offset_x), base_pos[1] + 20
-                rect = pg.Rect(0, 0, 20, 14)
-                rect.center = final_pos
-                pg.draw.rect(self.screen, color, rect)
+                offset = pg.math.Vector2((45), 0).rotate(angle)
+                final_pos = (
+                    int(base_pos[0] + offset.x),
+                    int(base_pos[1] + offset.y),
+                )
+                raw = pg.math.Vector2(to_x - from_x, to_y - from_y)
+                if raw.length_squared() > 0:
+                    direction = raw.normalize()
+                    self.last_directions[drone_id] = direction
+                else:
+                    direction = self.last_directions.get(
+                        drone_id, pg.math.Vector2(1, 0)
+                    )
+                size = 12
+                tip = final_pos + direction * size
+                back_left = (
+                    final_pos - direction * size + direction.rotate(90) * size
+                )
+                back_right = (
+                    final_pos - direction * size - direction.rotate(90) * size
+                )
+                pg.draw.polygon(
+                    self.screen, color, [tip, back_left, back_right]
+                )
                 text_surface = self.font.render(
                     str(drone_id), True, pg.Color(MACCHIATO["crust"])
                 )
-                text_rect = text_surface.get_rect(center=rect.center)
+                text_rect = text_surface.get_rect(center=final_pos)
                 self.screen.blit(text_surface, text_rect)
+
+    def draw_hud(self, snapshots: list[dict[int, str]]) -> None:
+        bar_height = 100
+        bar_rect = pg.Rect(
+            0,
+            self.screen.get_height() - bar_height,
+            self.screen.get_width(),
+            bar_height,
+        )
+        pg.draw.rect(self.screen, pg.Color(MACCHIATO["crust"]), bar_rect)
+        pg.draw.line(
+            self.screen,
+            pg.Color(MACCHIATO["surface1"]),
+            bar_rect.topleft,
+            bar_rect.topright,
+            2,
+        )
+        turn_surface = self.font.render(
+            f"Turn {self.turn_index}/{len(snapshots) - 1}",
+            True,
+            pg.Color(MACCHIATO["text"]),
+        )
+        turn_rect = turn_surface.get_rect(midleft=(20, bar_rect.centery))
+        self.screen.blit(turn_surface, turn_rect)
 
     def render(self, turn_log: list[dict[int, str]]) -> None:
         snapshots: list[dict[int, str]] = []
@@ -199,13 +250,12 @@ class PygameRender:
             current_positions = current_positions.copy()
             current_positions.update(turn)
             snapshots.append(current_positions)
-        turn_index = 0
+        self.turn_index = 0
         anim_target: int | None = None
         anim_progress: float = 0.0
-        paused = False
         paused = True
         running = True
-        anim_speed = 200
+        self.anim_speed = 200
         while running:
             dt = self.clock.tick(60)
             for event in pg.event.get():
@@ -218,17 +268,17 @@ class PygameRender:
                         case pg.K_RIGHT:
                             if anim_target is None:
                                 anim_target = min(
-                                    turn_index + 1, len(snapshots) - 1
+                                    self.turn_index + 1, len(snapshots) - 1
                                 )
                         case pg.K_LEFT:
                             if anim_target is None:
-                                anim_target = max(turn_index - 1, 0)
+                                anim_target = max(self.turn_index - 1, 0)
                         case pg.K_UP:
-                            if anim_speed > 200:
-                                anim_speed -= 200
+                            if self.anim_speed > 200:
+                                self.anim_speed -= 200
                         case pg.K_DOWN:
-                            if anim_speed < 1000:
-                                anim_speed += 200
+                            if self.anim_speed < 1000:
+                                self.anim_speed += 200
                         case pg.K_EQUALS:
                             mx, my = pg.mouse.get_pos()
                             wx, wy = self._screen_to_world(mx, my)
@@ -259,6 +309,7 @@ class PygameRender:
                         (event.w, event.h), pg.RESIZABLE
                     )
                     self._fit_view(event.w, event.h)
+                    self.base_scale = self.scale
                 elif event.type == pg.MOUSEBUTTONDOWN:
                     if event.button == 1:
                         self.drag_start = event.pos
@@ -279,28 +330,22 @@ class PygameRender:
                         self.tx = self.drag_origin[0] + dx
                         self.ty = self.drag_origin[1] + dy
             if anim_target is not None:
-                anim_progress += dt / anim_speed
+                anim_progress += dt / self.anim_speed
             elif anim_target is None and not paused:
-                anim_target = min(turn_index + 1, len(snapshots) - 1)
+                anim_target = min(self.turn_index + 1, len(snapshots) - 1)
             if anim_progress >= 1.0:
                 if anim_target is not None:
-                    turn_index = anim_target
+                    self.turn_index = anim_target
                 anim_target = None
                 anim_progress = 0.0
             self.draw_network()
             self.draw_drones(
-                snapshots[turn_index],
+                snapshots[self.turn_index],
                 snapshots[anim_target]
                 if anim_target is not None
-                else snapshots[turn_index],
+                else snapshots[self.turn_index],
                 anim_progress,
             )
-            turn_text = self.font.render(
-                f"Turn {turn_index}/{len(snapshots) - 1}",
-                True,
-                pg.Color(MACCHIATO["text"]),
-            )
-            self.screen.blit(turn_text, (10, 10))
-
+            self.draw_hud(snapshots)
             pg.display.flip()
         pg.quit()

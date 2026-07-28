@@ -201,8 +201,12 @@ class DroneVisualizer:
             ),
         )
         self._target_scale = self._scale
-        self._tx = (canvas_w - span_x * self._scale) / 2.0 - min_x * self._scale
-        self._ty = (canvas_h - span_y * self._scale) / 2.0 - min_y * self._scale
+        self._tx = (
+            canvas_w - span_x * self._scale
+        ) / 2.0 - min_x * self._scale
+        self._ty = (
+            canvas_h - span_y * self._scale
+        ) / 2.0 - min_y * self._scale
 
     def _hit_zone(self, sx: float, sy: float) -> str | None:
         r = max(16.0, min(80.0, self._scale * 0.22))
@@ -240,7 +244,11 @@ class DroneVisualizer:
 
     def _end_zone_name(self) -> str:
         return next(
-            (str(z["name"]) for z in self.zones if z.get("zone_type") == "end"),
+            (
+                str(z["name"])
+                for z in self.zones
+                if z.get("zone_type") == "end"
+            ),
             "",
         )
 
@@ -425,7 +433,9 @@ class DroneVisualizer:
                         self._zoom_center_world = (wx, wy)
 
                         val = (
-                            int(event.y) if int(event.y) != 0 else -int(event.x)
+                            int(event.y)
+                            if int(event.y) != 0
+                            else -int(event.x)
                         )
                         if val != 0:
                             is_touch = getattr(event, "touch", False)
@@ -488,9 +498,9 @@ class DroneVisualizer:
                                     ),
                                 )
 
-                            elif speed_slider_rect.inflate(10, 10).collidepoint(
-                                px, py
-                            ):
+                            elif speed_slider_rect.inflate(
+                                10, 10
+                            ).collidepoint(px, py):
                                 self._dragging_speed = True
                                 ratio = max(
                                     0.0,
@@ -538,7 +548,9 @@ class DroneVisualizer:
                         px = mx
                         ratio = max(
                             0.0,
-                            min(1.0, float(px - speed_slider_rect.x) / speed_w),
+                            min(
+                                1.0, float(px - speed_slider_rect.x) / speed_w
+                            ),
                         )
                         self._speed_val = int(100 + ratio * 1900)
 
@@ -837,7 +849,9 @@ class DroneVisualizer:
                 font_badge = self._get_font(
                     "Helvetica", max(7, int(br * 0.9)), bold=True
                 )
-                text_surf = font_badge.render(str(count), True, (255, 255, 255))
+                text_surf = font_badge.render(
+                    str(count), True, (255, 255, 255)
+                )
                 rect = text_surf.get_rect(center=(int(bx), int(by_b)))
                 _ = canvas_surf.blit(text_surf, rect)
 
@@ -872,7 +886,8 @@ class DroneVisualizer:
                                 sy
                                 + r
                                 + fs * 1.6
-                                + max(7, min(24, int(self._scale * 0.08))) * 0.8
+                                + max(7, min(24, int(self._scale * 0.08)))
+                                * 0.8
                                 + 6
                             ),
                         )
@@ -1344,7 +1359,9 @@ class DroneVisualizer:
                     _ = pygame.draw.rect(
                         play_surf,
                         ACCENT,
-                        pygame.Rect(timeline_x, timeline_y, fill_w, timeline_h),
+                        pygame.Rect(
+                            timeline_x, timeline_y, fill_w, timeline_h
+                        ),
                         border_radius=int(3 * us),
                     )
 
