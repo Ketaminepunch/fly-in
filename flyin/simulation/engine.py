@@ -10,6 +10,12 @@ from flyin.simulation.state import SimulationState
 def orchestration(
     network: Network, strategy: PathfindingStrategy
 ) -> list[dict[int, str]]:
+    """Run the full simulation and return the per-turn move log.
+
+    Plans an initial path per drone, then steps turn by turn until every
+    drone has reached the end zone, resolving movement conflicts each turn
+    and rerouting any drone stuck for two consecutive turns.
+    """
     drone_paths: dict[int, list[Connection]] = {}
     drone_progress: dict[int, int] = {}
     drone_list: list[Drone] = []

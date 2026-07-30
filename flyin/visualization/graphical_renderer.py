@@ -40,6 +40,8 @@ DRONE_COLORS = [
 
 
 class PygameRender:
+    """Interactive pygame viewer for a network and its per-turn drone log."""
+
     def __init__(
         self,
         network: Network,
@@ -47,6 +49,7 @@ class PygameRender:
         height: int = 600,
         margin: int = 65,
     ) -> None:
+        """Open a pygame window and fit the network's zones inside it."""
         self.network: Network = network
         pg.init()
         self.margin = margin
@@ -76,11 +79,13 @@ class PygameRender:
         self.anim_speed: int = 0
 
     def _font_finder(self, size: int) -> pg.font.Font:
+        """Return a cached SysFont for size, creating it if needed."""
         if size not in self.fonts:
             self.fonts[size] = pg.font.SysFont(None, size)
         return self.fonts[size]
 
     def _fit_view(self, width: int, height: int) -> None:
+        """Compute scale/translation so all zones fit within the window."""
         xs = [zone.x for zone in self.network.zones.values()]
         ys = [zone.y for zone in self.network.zones.values()]
         x_min, x_max = min(xs), max(xs)
@@ -94,12 +99,15 @@ class PygameRender:
         self.ty = (height - y_span * self.scale) / 2 - y_min * self.scale
 
     def _world_to_screen(self, wx: float, wy: float) -> tuple[float, float]:
+        """Convert network coordinates to current on-screen pixel position."""
         return (wx * self.scale + self.tx, wy * self.scale + self.ty)
 
     def _screen_to_world(self, sx: float, sy: float) -> tuple[float, float]:
+        """Convert an on-screen pixel position back to network coordinates."""
         return ((sx - self.tx) / self.scale, (sy - self.ty) / self.scale)
 
     def draw_network(self) -> None:
+        """Draw the background, every connection line, and every zone."""
         self.screen.fill(pg.Color(MACCHIATO["base"]))
         all_connections = set()
         ratio = self.scale / self.base_scale
@@ -153,6 +161,11 @@ class PygameRender:
             self.screen.blit(capacity_surface, capacity_rect)
 
     def token_to_pos(self, token: str) -> tuple[float, float]:
+        """Resolve a zone name or connection name to a screen position.
+
+        Zone tokens map to that zone's position; connection tokens map to
+        the midpoint between the two zones it links.
+        """
         if token in self.positions:
             wx, wy = self.positions[token]
         else:
@@ -168,6 +181,11 @@ class PygameRender:
         to_positions: dict[int, str],
         progress: float,
     ) -> None:
+        """Draw every drone as an arrow interpolated between two positions.
+
+        Drones sharing the same from/to token pair are fanned out around
+        their shared interpolated point so they don't overlap.
+        """
         by_pair: dict[tuple[str, str], list[int]] = {}
         for drone_id, from_token in from_positions.items():
             to_token = to_positions[drone_id]
@@ -216,6 +234,7 @@ class PygameRender:
                 self.screen.blit(text_surface, text_rect)
 
     def draw_hud(self, snapshots: list[dict[int, str]]) -> None:
+        """Draw the bottom bar showing the current turn index."""
         bar_height = 100
         bar_rect = pg.Rect(
             0,
@@ -240,6 +259,13 @@ class PygameRender:
         self.screen.blit(turn_surface, turn_rect)
 
     def render(self, turn_log: list[dict[int, str]]) -> None:
+        """Run the interactive render loop until the window is closed.
+
+        Builds a per-turn position snapshot from turn_log, then handles
+        playback (space), stepping (arrows), speed (up/down), zoom
+        (+/-/wheel) and panning (drag) while animating drones between
+        turns.
+        """
         snapshots: list[dict[int, str]] = []
         current_positions: dict[int, str] = {
             drone_id: self.network.start.name

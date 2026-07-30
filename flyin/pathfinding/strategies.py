@@ -9,6 +9,13 @@ from .exceptions import PathNotFoundError
 
 
 class DijkstraStrategy(PathfindingStrategy):
+    """Shortest-path routing using a Dijkstra variant with two-key costs.
+
+    Each candidate path is ranked by (distance, priority_score): distance
+    accounts for zone/connection type and current congestion, while
+    priority_score favors routes through "priority" zones.
+    """
+
     def find_path(
         self,
         network: Network,
@@ -18,6 +25,11 @@ class DijkstraStrategy(PathfindingStrategy):
         connection_reservations: dict[str, int],
         zone_reservations: dict[str, int],
     ) -> list[Connection]:
+        """Find the lowest-cost connection sequence to network.end.
+
+        Raises PathNotFoundError if start_zone cannot reach the end zone
+        without crossing a blocked zone/connection.
+        """
         heap: list[tuple[int, int, str]] = []
         visited: set[str] = set()
         distances: dict[str, tuple[int, int]] = {}

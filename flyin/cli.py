@@ -13,6 +13,7 @@ from flyin.visualization.graphical_renderer import PygameRender
 
 
 def argument_parsing() -> argparse.Namespace:
+    """Parse and return the command-line arguments for the program."""
     parser = argparse.ArgumentParser(
         description="Parsing arguments for fly-in"
     )
@@ -25,6 +26,7 @@ def argument_parsing() -> argparse.Namespace:
 
 
 def main() -> None:
+    """Parse arguments, run the simulation, and print/render the result."""
     try:
         args = argument_parsing()
         map_path = args.map_path

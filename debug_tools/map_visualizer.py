@@ -67,6 +67,7 @@ def to_turns(turn_log: list[dict[int, str]]) -> list[list[str]]:
 
 
 def main() -> None:
+    """Parse a map file, run the simulation, and play it back visually."""
     if len(sys.argv) < 2:
         print(f"usage: {sys.argv[0]} <map_file>")
         raise SystemExit(1)

@@ -24,6 +24,7 @@ TurnLog = list[list[str]]
 
 
 def hex_to_rgb(hex_str: str) -> tuple[int, int, int]:
+    """Convert a "#rrggbb" hex color string to an (r, g, b) tuple."""
     hex_str = hex_str.lstrip("#")
     return int(hex_str[0:2], 16), int(hex_str[2:4], 16), int(hex_str[4:6], 16)
 
@@ -57,6 +58,7 @@ ZONE_TYPE_RING_RGB = {k: hex_to_rgb(v) for k, v in ZONE_TYPE_RING.items()}
 def resolve_color_rgb(
     name: str, fallback_hex: str = "#60a5fa"
 ) -> tuple[int, int, int]:
+    """Look up a named color in COLOR_MAP, falling back to fallback_hex."""
     hex_str = COLOR_MAP.get(name.lower(), fallback_hex)
     return hex_to_rgb(hex_str)
 
@@ -64,6 +66,7 @@ def resolve_color_rgb(
 def get_drone_colors(
     did: str,
 ) -> tuple[tuple[int, int, int], tuple[int, int, int]]:
+    """Return a stable (base_color, highlight_color) pair for a drone id."""
     colors = [
         "#f87171",
         "#60a5fa",

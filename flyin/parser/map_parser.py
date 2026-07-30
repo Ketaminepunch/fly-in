@@ -11,6 +11,11 @@ from .exceptions import ParsingError
 
 
 def parse_map_file(path: str) -> Network:
+    """Read a map file into a Network, raising ParsingError on bad input.
+
+    Expects a leading `nb_drones` line, then any number of `start_hub`,
+    `end_hub`, `hub`, and `connection` lines (see the subject, Chapter VI).
+    """
     network = Network()
     nbr = 0
     first_line_seen = False
@@ -83,6 +88,11 @@ def parse_map_file(path: str) -> Network:
 
 
 def connection_parser(body_text: str, line_nbr: int) -> tuple[str, str, int]:
+    """Parse a `connection` line body into (zone1_name, zone2_name, capacity).
+
+    Body format is `zone1-zone2[max_link_capacity=N]`, with the bracketed
+    metadata being optional (capacity defaults to 1).
+    """
     name, _, metadata = body_text.partition("[")
     name = name.strip()
     try:
@@ -118,6 +128,11 @@ def connection_parser(body_text: str, line_nbr: int) -> tuple[str, str, int]:
 
 
 def zone_parser(body_text: str, line_nbr: int) -> Zone:
+    """Parse a hub line body into a Zone.
+
+    Body format is `name x y [zone=type max_drones=N color=C]`, with the
+    bracketed metadata being optional and each key defaulting when absent.
+    """
     namexy, _, metadata = body_text.partition("[")
     if metadata and metadata == metadata.rstrip("]"):
         raise ParsingError(

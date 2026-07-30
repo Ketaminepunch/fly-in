@@ -7,6 +7,7 @@ class Connection:
     def __init__(
         self, zone1_name: str, zone2_name: str, max_link_capacity: int
     ) -> None:
+        """Store the two zone names and the connection's link capacity."""
         self.zone1_name = zone1_name
         self.zone2_name = zone2_name
         self.max_link_capacity = max_link_capacity

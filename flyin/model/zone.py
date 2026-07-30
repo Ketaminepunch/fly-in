@@ -15,6 +15,7 @@ class Zone:
         capacity: int,
         color: str,
     ) -> None:
+        """Store the zone's identity, position, type, capacity and color."""
         self.name = name
         self.x = x
         self.y = y

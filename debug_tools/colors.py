@@ -1,3 +1,5 @@
+"""Named color -> hex code lookup used by the debug visualizers."""
+
 COLOR_MAP = {
     # Original Base Colors
     "rainbow": "#f87171",  # make this sepcial in the visualizer bc the one map has it

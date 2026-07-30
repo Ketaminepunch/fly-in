@@ -2,6 +2,7 @@
 
 
 def format_turns(turn_log: list[dict[int, str]]) -> list[str]:
+    """Format each turn's moves as a sorted "D<id>-<token>" line."""
     turns_formatted: list[str] = []
     for turn in turn_log:
         sorted_log = sorted(turn.items())
@@ -11,6 +12,3 @@ def format_turns(turn_log: list[dict[int, str]]) -> list[str]:
             )
         )
     return turns_formatted
-
-
-

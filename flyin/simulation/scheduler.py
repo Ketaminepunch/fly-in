@@ -8,6 +8,13 @@ from flyin.simulation.state import SimulationState
 def resolve_turn(
     state: SimulationState, proposed_moves: dict[int, Connection]
 ) -> dict[int, Connection]:
+    """Admit as many proposed moves as capacity allows and apply them.
+
+    Repeatedly scans the pending moves, accepting (and applying via
+    state.move_drone) any whose connection and destination zone still
+    have free capacity, until a full pass makes no further progress.
+    Returns the accepted drone_id -> connection moves.
+    """
     accepted: dict[int, Connection] = {}
     pending = dict(proposed_moves)
     while True:

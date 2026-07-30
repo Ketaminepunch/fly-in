@@ -8,6 +8,9 @@ from .exceptions import BlockedZoneError
 
 
 class Location:
+    """A drone's position: either sitting in a zone or in transit on a
+    connection towards a destination zone."""
+
     def __init__(
         self,
         zone: str | None = None,
@@ -15,6 +18,7 @@ class Location:
         destination: str | None = None,
         turns_remaining: int | None = None,
     ):
+        """Store the zone/in-transit fields describing this location."""
         self.zone = zone
         self.connection = connection
         self.destination = destination
@@ -22,7 +26,10 @@ class Location:
 
 
 class SimulationState:
+    """Tracks turn number and every drone's location for one simulation."""
+
     def __init__(self, network: Network, drones: list[Drone]):
+        """Place every drone in the network's start zone at turn 0."""
         self.network = network
         self.turn: int = 0
         self.drone_locations: dict[int, Location] = {
@@ -30,6 +37,7 @@ class SimulationState:
         }
 
     def zone_occupancy(self, zone_name: str) -> int:
+        """Count drones currently in, or arriving into, the given zone."""
         matches = 0
         for location in self.drone_locations.values():
             if location.zone == zone_name:
@@ -39,6 +47,7 @@ class SimulationState:
         return matches
 
     def connection_occupancy(self, connection: Connection) -> int:
+        """Count drones currently in transit on the given connection."""
         matches = 0
         for location in self.drone_locations.values():
             if connection == location.connection:
@@ -46,6 +55,11 @@ class SimulationState:
         return matches
 
     def zone_has_capacity(self, zone_name: str) -> bool:
+        """Return whether a drone can currently enter the given zone.
+
+        Blocked zones never have capacity; the start/end zones always do;
+        other zones depend on current occupancy versus their capacity.
+        """
         if self.network.zones[zone_name].zone_type == "blocked":
             return False
         if (
@@ -60,12 +74,19 @@ class SimulationState:
             )
 
     def connection_has_capacity(self, connection: Connection) -> bool:
+        """Return whether the connection has a free slot for another drone."""
         return (
             self.connection_occupancy(connection)
             < connection.max_link_capacity
         )
 
     def move_drone(self, drone_id: int, connection: Connection) -> None:
+        """Advance a drone onto connection, updating its location in place.
+
+        Normal/priority destinations land the drone immediately; restricted
+        destinations put it in transit for one turn; any other destination
+        type raises BlockedZoneError.
+        """
         location = self.drone_locations[drone_id]
         assert location.zone is not None
         destination_name = (
@@ -89,9 +110,15 @@ class SimulationState:
                 raise BlockedZoneError()
 
     def advance_turn(self) -> None:
+        """Increment the turn counter."""
         self.turn += 1
 
     def land_arrivals(self) -> list[int]:
+        """Land every drone whose in-transit wait has elapsed.
+
+        Moves each such drone's location to its destination zone and
+        returns the ids of drones that landed this call.
+        """
         landing_drones: list[int] = []
         for drone_id, location in self.drone_locations.items():
             if location.turns_remaining is not None:
