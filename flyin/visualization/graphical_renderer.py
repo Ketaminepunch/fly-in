@@ -57,7 +57,7 @@ class PygameRender:
             (width, height), pg.RESIZABLE
         )
         self.clock: pg.time.Clock = pg.time.Clock()
-        self.font: pg.font.Font = pg.font.SysFont(None, 20)
+        self.font: pg.font.Font = pg.font.SysFont(None, 24)
         self.last_directions: dict[int, pg.math.Vector2] = {}
         self.positions: dict[str, tuple[float, float]] = {
             zone.name: (zone.x, zone.y) for zone in self.network.zones.values()
@@ -77,6 +77,7 @@ class PygameRender:
         self.fonts: dict[int, pg.font.Font] = {}
         self.turn_index: int = 0
         self.anim_speed: int = 0
+        self.paused: bool = False
 
     def _font_finder(self, size: int) -> pg.font.Font:
         """Return a cached SysFont for size, creating it if needed."""
@@ -86,6 +87,7 @@ class PygameRender:
 
     def _fit_view(self, width: int, height: int) -> None:
         """Compute scale/translation so all zones fit within the window."""
+        available_height = height - self.margin - (self.margin + 100)
         xs = [zone.x for zone in self.network.zones.values()]
         ys = [zone.y for zone in self.network.zones.values()]
         x_min, x_max = min(xs), max(xs)
@@ -93,10 +95,14 @@ class PygameRender:
         x_span, y_span = x_max - x_min or 1.0, y_max - y_min or 1.0
         self.scale = min(
             (width - 2 * self.margin) / x_span,
-            (height - 2 * self.margin) / y_span,
+            available_height / y_span,
         )
         self.tx = (width - x_span * self.scale) / 2 - x_min * self.scale
-        self.ty = (height - y_span * self.scale) / 2 - y_min * self.scale
+        self.ty = (
+            self.margin
+            + (available_height - y_span * self.scale) / 2
+            - y_min * self.scale
+        )
 
     def _world_to_screen(self, wx: float, wy: float) -> tuple[float, float]:
         """Convert network coordinates to current on-screen pixel position."""
@@ -136,22 +142,21 @@ class PygameRender:
             cx, cy = int(zone_position[0]), int(zone_position[1])
             type_color = pg.Color(type_colors[zone.zone_type])
             pygame.gfxdraw.filled_circle(
-                self.screen, cx, cy, int(26), type_color
+                self.screen, cx, cy, int(30), type_color
             )
-            pygame.gfxdraw.aacircle(self.screen, cx, cy, int(26), type_color)
+            pygame.gfxdraw.aacircle(self.screen, cx, cy, int(30), type_color)
             pygame.gfxdraw.filled_circle(
-                self.screen, cx, cy, int(24), body_color
+                self.screen, cx, cy, int(28), body_color
             )
-            pygame.gfxdraw.aacircle(self.screen, cx, cy, int(24), body_color)
-            if self.scale > self.base_scale * 1.03:
-                size = int(clamp(14 * ratio, 8, 27))
-                text_surface = self._font_finder(size).render(
-                    zone.name, True, pg.Color(MACCHIATO["text"])
-                )
-                text_rect = text_surface.get_rect(
-                    center=(zone_position[0], zone_position[1] + (35))
-                )
-                self.screen.blit(text_surface, text_rect)
+            pygame.gfxdraw.aacircle(self.screen, cx, cy, int(28), body_color)
+            size = int(clamp(16 * ratio, 8, 26))
+            text_surface = self._font_finder(size).render(
+                zone.name, True, pg.Color(MACCHIATO["text"])
+            )
+            text_rect = text_surface.get_rect(
+                center=(zone_position[0], zone_position[1] + (35))
+            )
+            self.screen.blit(text_surface, text_rect)
             capacity_surface = self.font.render(
                 str(zone.capacity), True, pg.Color(MACCHIATO["crust"])
             )
@@ -180,6 +185,7 @@ class PygameRender:
         from_positions: dict[int, str],
         to_positions: dict[int, str],
         progress: float,
+        next_positions: dict[int, str],
     ) -> None:
         """Draw every drone as an arrow interpolated between two positions.
 
@@ -213,9 +219,19 @@ class PygameRender:
                     direction = raw.normalize()
                     self.last_directions[drone_id] = direction
                 else:
-                    direction = self.last_directions.get(
-                        drone_id, pg.math.Vector2(1, 0)
-                    )
+                    next_token = next_positions.get(drone_id, from_token)
+                    look = pg.math.Vector2(0, 0)
+                    if next_token != from_token:
+                        next_x, next_y = self.token_to_pos(next_token)
+                        look = pg.math.Vector2(
+                            next_x - from_x, next_y - from_y
+                        )
+                    if look.length_squared() > 0:
+                        direction = look.normalize()
+                    else:
+                        direction = self.last_directions.get(
+                            drone_id, pg.math.Vector2(1, 0)
+                        )
                 size = 12
                 tip = final_pos + direction * size
                 back_left = (
@@ -255,8 +271,39 @@ class PygameRender:
             True,
             pg.Color(MACCHIATO["text"]),
         )
-        turn_rect = turn_surface.get_rect(midleft=(20, bar_rect.centery))
+        turn_rect = turn_surface.get_rect(midleft=(60, bar_rect.centery))
+        speed_surface = self.font.render(
+            f"Animation Speed: {self.anim_speed}ms",
+            True,
+            pg.Color(MACCHIATO["text"]),
+        )
+        speed_rect = speed_surface.get_rect(midleft=(140, bar_rect.centery))
         self.screen.blit(turn_surface, turn_rect)
+        self.screen.blit(speed_surface, speed_rect)
+        icon_size = 20
+        icon_center = (
+            30,
+            bar_rect.centery,
+        )
+        color = pg.Color(MACCHIATO["text"])
+
+        if self.paused:
+            bar_w, gap = 6, 4
+            for sign in (-1, 1):
+                bar = pg.Rect(0, 0, bar_w, icon_size)
+                bar.center = (
+                    int(icon_center[0] + sign * (gap / 2 + bar_w / 2)),
+                    icon_center[1],
+                )
+                pg.draw.rect(self.screen, color, bar)
+        else:
+            half = icon_size / 2
+            points = [
+                (icon_center[0] - half, icon_center[1] - half),  # top-left
+                (icon_center[0] - half, icon_center[1] + half),  # bottom-left
+                (icon_center[0] + half, icon_center[1]),  # tip, middle-right
+            ]
+            pg.draw.polygon(self.screen, color, points)
 
     def render(self, turn_log: list[dict[int, str]]) -> None:
         """Run the interactive render loop until the window is closed.
@@ -279,7 +326,7 @@ class PygameRender:
         self.turn_index = 0
         anim_target: int | None = None
         anim_progress: float = 0.0
-        paused = True
+        self.paused = True
         running = True
         self.anim_speed = 200
         while running:
@@ -290,7 +337,7 @@ class PygameRender:
                 elif event.type == pg.KEYDOWN:
                     match event.key:
                         case pg.K_SPACE:
-                            paused = not paused
+                            self.paused = not self.paused
                         case pg.K_RIGHT:
                             if anim_target is None:
                                 anim_target = min(
@@ -357,7 +404,7 @@ class PygameRender:
                         self.ty = self.drag_origin[1] + dy
             if anim_target is not None:
                 anim_progress += dt / self.anim_speed
-            elif anim_target is None and not paused:
+            elif anim_target is None and not self.paused:
                 anim_target = min(self.turn_index + 1, len(snapshots) - 1)
             if anim_progress >= 1.0:
                 if anim_target is not None:
@@ -365,12 +412,14 @@ class PygameRender:
                 anim_target = None
                 anim_progress = 0.0
             self.draw_network()
+            next_index = min(self.turn_index + 1, len(snapshots) - 1)
             self.draw_drones(
                 snapshots[self.turn_index],
                 snapshots[anim_target]
                 if anim_target is not None
                 else snapshots[self.turn_index],
                 anim_progress,
+                snapshots[next_index],
             )
             self.draw_hud(snapshots)
             pg.display.flip()
