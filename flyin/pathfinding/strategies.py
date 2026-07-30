@@ -40,7 +40,7 @@ class DijkstraStrategy(PathfindingStrategy):
                     current_zone = prev_zone
                 path.reverse()
                 return path
-            for connection in network.adjacency[current_zone]:
+            for connection in network.adjacency.get(current_zone, []):
                 if connection.name in blocked_connections:
                     continue
                 neighbor_name = (

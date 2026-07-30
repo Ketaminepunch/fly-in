@@ -89,7 +89,12 @@ def connection_parser(body_text: str, line_nbr: int) -> tuple[str, str, int]:
         zone1_name, zone2_name = name.split("-")
     except ValueError:
         raise ParsingError(line_nbr, "invalid connection name") from None
-    metadata = metadata.rstrip("]")
+    if metadata and metadata == metadata.rstrip("]"):
+        raise ParsingError(
+            line_nbr, "invalid metadata syntax missing closing brackets"
+        )
+    else:
+        metadata = metadata.rstrip("]")
     if metadata:
         try:
             _, max_link_capacity = metadata.split("=")
@@ -114,7 +119,12 @@ def connection_parser(body_text: str, line_nbr: int) -> tuple[str, str, int]:
 
 def zone_parser(body_text: str, line_nbr: int) -> Zone:
     namexy, _, metadata = body_text.partition("[")
-    metadata = metadata.rstrip("]")
+    if metadata and metadata == metadata.rstrip("]"):
+        raise ParsingError(
+            line_nbr, "invalid metadata syntax missing closing brackets"
+        )
+    else:
+        metadata = metadata.rstrip("]")
     if len(namexy.split()) != 3:
         raise ParsingError(line_nbr, "name, x or y are missing")
     name, x_str, y_str = namexy.split()
