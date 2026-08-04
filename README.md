@@ -4,16 +4,19 @@
 
 ## Description
 
-TODO: One paragraph on the goal (route a fleet of drones from a start zone to
-an end zone across a network of zones, in the fewest simulation turns, under
-capacity and movement constraints) and a brief overview of the approach.
+The fly-in project is primarily about pathfinding.The goal is to get an input map and for any given map try to minimize the turns needed for all drones to get from the start node to the finish node. The main challenges were orchestration of all drones simulatinously,visualization and parsing.
+The finished program takes an input file with a specific format and out of that creates a map of nodes and connections. The it calulates the path of the drones with the dijkstra algorithm. The paths are printed to the terminal and an interactive visualizer shows the process more clearly.Every Zone and connection have a maximum capacity which makes the pathfinding more difficult.
+
+
+A valid map is a combination of zones and connections with a findable path from start to end. There are 4 different types of zones:
+<ol>
+<li> Normal Zone: Normal zone one turn to travel to it
+<li> Priority Zone: Just like the normal zone but should be prioritized if it doesnt lead to more turns.
+<li> Restricted Zone: For this zone it takes 2 turns for a drone to land on it instead of one.
+<li> Blocked Zone: This zone is impossible to reach and should be ignored in pathfinding.
+
 
 ## Instructions
-
-### Requirements
-
-- Python 3.10+
-- [uv](https://docs.astral.sh/uv/)
 
 ### Install
 
@@ -40,17 +43,15 @@ make lint
 make lint-strict   # optional, stricter mypy
 ```
 
-### Test (not graded, for development only)
+### Requirements
 
-```sh
-make test
-```
+- Python 3.10+
+- [uv](https://docs.astral.sh/uv/)
+
 
 ## Algorithm choices and implementation strategy
 
-TODO: Describe the pathfinding algorithm(s), how turn scheduling / conflict
-avoidance / capacity constraints are handled, and the complexity of the
-approach (see subject VII.1).
+
 
 ## Visual representation
 
