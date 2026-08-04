@@ -1,17 +1,19 @@
 """Search tests/fuzz_logs/ for fuzz-harness runs and cases.
 
-Each `make fuzz` / `test_harness.py` invocation writes its own
-timestamped JSON file under tests/fuzz_logs/ (one run per file, so the
-directory never balloons into a single ever-growing document). This
-tool loads every file in that directory as one run, in timestamp
-order, and lets you filter across all of them.
+Each `make fuzz` / `tester.py` invocation writes its own timestamped
+JSON file under tests/fuzz_logs/ (one run per file, so the directory
+never balloons into a single ever-growing document). This tool loads
+every file in that directory as one run, in timestamp order, and lets
+you filter across all of them.
 
 Examples:
 
-    python -m tests.search_fuzz_log --list-runs
-    python -m tests.search_fuzz_log --outcome ParsingError --contains dash
-    python -m tests.search_fuzz_log --unexpected-only
-    python -m tests.search_fuzz_log --seed 1 --iteration 3 --content
+    python -m tests.fuzz --list-runs
+    python -m tests.fuzz --outcome ParsingError --contains dash
+    python -m tests.fuzz --unexpected-only
+    python -m tests.fuzz --seed 1 --iteration 3 --content
+
+See tests/README.md for nushell/jq alternatives to this script.
 """
 
 from __future__ import annotations
@@ -54,7 +56,7 @@ def _red(text: str) -> str:
 def case_expected(case: dict[str, Any]) -> bool:
     """True if `case` is a documented parser result, not a crash.
 
-    Reads the "expected" field written by test_harness.py directly;
+    Reads the "expected" field written by tester.py directly;
     falls back to checking "outcome" for older log files that predate
     that field.
     """

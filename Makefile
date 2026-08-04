@@ -24,7 +24,7 @@ lint-strict:
 test:
 	uv run pytest
 
-# Deep, seedable fuzzing pass against the parser (tests/test_harness.py).
+# Deep, seedable fuzzing pass against the parser (tests/tester.py).
 # `make test` above already runs a fast pass of the same file (a few
 # hundred Hypothesis examples + a 200-iteration fuzz smoke test); use
 # this target when you want to crank iterations way up. Each run
@@ -32,10 +32,11 @@ test:
 MODE ?= both
 N ?= 20000
 fuzz:
-	uv run python -m tests.test_harness --mode $(MODE) -n $(N) \
+	uv run python -m tests.tester --mode $(MODE) -n $(N) \
 		$(if $(SEED),--seed $(SEED),)
 
 # Search past fuzz runs, e.g. make fuzz-search ARGS="--unexpected-only"
+# See tests/README.md for nushell/jq alternatives.
 ARGS ?=
 fuzz-search:
-	uv run python -m tests.search_fuzz_log $(ARGS)
+	uv run python -m tests.fuzz $(ARGS)

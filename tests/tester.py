@@ -6,12 +6,12 @@ exception, or a hang) is a parser bug.
 
 Run under pytest for a fast pass of both engines:
 
-    pytest tests/test_harness.py -q
+    pytest tests/tester.py -q
 
 Run as a script for a deeper, seedable fuzzing pass (must use -m, so
 the repo root is on sys.path and `flyin` is importable):
 
-    python -m tests.test_harness --mode both -n 20000 --seed 1
+    python -m tests.tester --mode both -n 20000 --seed 1
 
 Or via the Makefile:
 
