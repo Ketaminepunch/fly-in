@@ -18,6 +18,10 @@ venv/
 build/
 dist/
 
+# Fuzz harness crash artifacts and per-run logs
+tests/crashes/
+tests/fuzz_logs/
+
 # Editors / OS
 .vscode/
 .idea/
@@ -25,3 +29,7 @@ dist/
 
 # Environment
 .env
+
+# Personal dev tooling/notes, not part of the graded submission
+dev.nu
+DEV_NOTES.md

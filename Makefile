@@ -1,4 +1,4 @@
-.PHONY: install run debug clean lint lint-strict test
+.PHONY: install run debug clean lint lint-strict test fuzz fuzz-search
 
 install:
 	uv sync
@@ -23,3 +23,19 @@ lint-strict:
 
 test:
 	uv run pytest
+
+# Deep, seedable fuzzing pass against the parser (tests/test_harness.py).
+# `make test` above already runs a fast pass of the same file (a few
+# hundred Hypothesis examples + a 200-iteration fuzz smoke test); use
+# this target when you want to crank iterations way up. Each run
+# writes its own timestamped log under tests/fuzz_logs/ (gitignored).
+MODE ?= both
+N ?= 20000
+fuzz:
+	uv run python -m tests.test_harness --mode $(MODE) -n $(N) \
+		$(if $(SEED),--seed $(SEED),)
+
+# Search past fuzz runs, e.g. make fuzz-search ARGS="--unexpected-only"
+ARGS ?=
+fuzz-search:
+	uv run python -m tests.search_fuzz_log $(ARGS)
