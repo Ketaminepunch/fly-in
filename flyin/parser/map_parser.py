@@ -93,18 +93,18 @@ def connection_parser(body_text: str, line_nbr: int) -> tuple[str, str, int]:
     Body format is `zone1-zone2[max_link_capacity=N]`, with the bracketed
     metadata being optional (capacity defaults to 1).
     """
-    name, _, metadata = body_text.partition("[")
+    name, bracket, metadata = body_text.partition("[")
     name = name.strip()
     try:
         zone1_name, zone2_name = name.split("-")
     except ValueError:
         raise ParsingError(line_nbr, "invalid connection name") from None
-    if metadata and metadata == metadata.rstrip("]"):
+    if bracket and not metadata.endswith("]"):
         raise ParsingError(
             line_nbr, "invalid metadata syntax missing closing brackets"
         )
     else:
-        metadata = metadata.rstrip("]")
+        metadata = metadata[:-1]
     if metadata:
         try:
             _, max_link_capacity = metadata.split("=")
@@ -133,13 +133,13 @@ def zone_parser(body_text: str, line_nbr: int) -> Zone:
     Body format is `name x y [zone=type max_drones=N color=C]`, with the
     bracketed metadata being optional and each key defaulting when absent.
     """
-    namexy, _, metadata = body_text.partition("[")
-    if metadata and metadata == metadata.rstrip("]"):
+    namexy, bracket, metadata = body_text.partition("[")
+    if bracket and not metadata.endswith("]"):
         raise ParsingError(
             line_nbr, "invalid metadata syntax missing closing brackets"
         )
     else:
-        metadata = metadata.rstrip("]")
+        metadata = metadata[:-1]
     if len(namexy.split()) != 3:
         raise ParsingError(line_nbr, "name, x or y are missing")
     name, x_str, y_str = namexy.split()
@@ -149,11 +149,15 @@ def zone_parser(body_text: str, line_nbr: int) -> Zone:
         raise ParsingError(
             line_nbr, "coordinate value must be an integer"
         ) from None
+
+    meta = {}
     try:
-        meta = {
-            key: value
-            for key, value in (token.split("=") for token in metadata.split())
-        }
+        for token in metadata.split():
+            key, value = token.split("=")
+            if key in meta:
+                raise ParsingError(line_nbr, "duplicate metadata key")
+            else:
+                meta[key] = value
     except ValueError:
         raise ParsingError(
             line_nbr, "invalid key=value syntax in metadata"
