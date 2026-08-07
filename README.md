@@ -43,6 +43,12 @@ make lint
 make lint-strict   # optional, stricter mypy
 ```
 
+### Run with flags
+
+```sh
+make run MAP=path_to_map ARGS=--no_gui
+```
+
 ### Requirements
 
 - Python 3.10+

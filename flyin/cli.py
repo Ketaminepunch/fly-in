@@ -18,7 +18,7 @@ def argument_parsing() -> argparse.Namespace:
     )
     parser.add_argument("map_path", help="path to map file")
     parser.add_argument(
-        "-d", "--drones", type=int, default=None, help="override drone count"
+        "--no_gui", action="store_true", help="runs program without gui"
     )
     args = parser.parse_args()
     return args
@@ -44,10 +44,11 @@ def main() -> None:
         formatted_turns = format_turns(turn_log)
         for line in formatted_turns:
             print(line)
-        from flyin.visualization.graphical_renderer import PygameRender
+        if not args.no_gui:
+            from flyin.visualization.graphical_renderer import PygameRender
 
-        renderer = PygameRender(network)
-        renderer.render(turn_log)
+            renderer = PygameRender(network)
+            renderer.render(turn_log)
     except KeyboardInterrupt:
         print("Bye bye!!")
         sys.exit(1)
